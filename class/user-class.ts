@@ -15,7 +15,8 @@ export class UserClass {
       const estado: boolean = req.body.estado;
       const role: any = new mongoose.Types.ObjectId(req.body.role);
       const avatar: string = req.body.avatar;
-      const password: string = bcrypt.hashSync(req.body.password, 10);
+
+      const password: string = bcrypt.hashSync("12345678", 10);
 
       const crearUser = new userModel({
         nombre,
@@ -77,7 +78,7 @@ export class UserClass {
       if (userDB) {
         return resp.json({
           ok: true,
-          userDB,
+          userDB: userDB[0],
         });
       } else {
         return resp.json({
@@ -100,7 +101,18 @@ export class UserClass {
     try {
       const usersDB = await userModel.aggregate([
         {
+          $lookup: {
+            from: "rols",
+            localField: "role",
+            foreignField: "_id",
+            as: "role",
+          },
+        },
+        {
           $unset: "password",
+        },
+        {
+          $unwind: { path: "$role", preserveNullAndEmptyArrays: true },
         },
       ]);
 
@@ -130,18 +142,22 @@ export class UserClass {
       const nombre: string = req.body.nombre;
       const apellido: string = req.body.apellido;
       const telefono: string = req.body.telefono;
-      const correo: string = req.body.correo;
+      // const correo: string = req.body.correo;
       const estado: boolean = req.body.estado;
-      const role: any = new mongoose.Types.ObjectId(req.body.role);
+      let role: any = req.body.role;
       const avatar: string = req.body.avatar;
       const password: string = req.body.password;
       //   const password: string = bcrypt.hashSync(req.body.password, 10);
+
+      if (role) {
+        role = new mongoose.Types.ObjectId(req.body.role);
+      }
 
       const query = {
         nombre,
         apellido,
         telefono,
-        correo,
+        // correo,
         estado,
         role,
         avatar,
@@ -186,7 +202,7 @@ export class UserClass {
 
   async eliminarUsuario(req: any, resp: Response): Promise<any> {
     try {
-      const _id: any = new mongoose.Types.ObjectId(req.body._id);
+      const _id: any = new mongoose.Types.ObjectId(req.get("_id"));
 
       const userDB: userDB | null = await userModel.findByIdAndDelete({ _id });
 
